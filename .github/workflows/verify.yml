@@ -16,6 +16,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
+      - run: pnpm test:native
       - run: pnpm build
       - run: git diff --exit-code -- dist/wallet.bundle.js
       - run: pnpm audit --prod

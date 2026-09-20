@@ -6,8 +6,11 @@
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test tests/*.test.mjs",
+    "test:native": "node --test native-market/test/market.test.mjs",
     "check": "node --check dist/app.js && node --check dist/engine.js",
     "build": "node build.mjs",
+    "build:native": "node native-market/compile.mjs",
+    "native:lab": "node native-market/lab-server.mjs",
     "test:fork": "node --test tests/fork.integration.mjs",
     "build:lab": "node scripts/build-lab.mjs",
     "testnet": "node scripts/build-lab.mjs && node scripts/lab-server.mjs",
@@ -22,7 +25,8 @@
   },
   "devDependencies": {
     "esbuild": "0.25.12",
-    "ganache": "7.9.2"
+    "ganache": "7.9.2",
+    "solc": "0.8.37"
   },
   "packageManager": "pnpm@11.19.0"
 }

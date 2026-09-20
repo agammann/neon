@@ -7,5 +7,6 @@ node_modules/
 
 .build/
 .local/
+native-market/artifacts/
 dist/server/
 dist/.openai/

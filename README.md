@@ -1,5 +1,7 @@
 # Neon
 
+> **Native ETH market work in progress:** [Try the local Alice and Bob lab](native-market/README.md). This separate experimental branch uses only native test ETH for margin and payouts. It is not deployed or ready for real funds. The published site described below is the earlier ETH/USDT spot application.
+
 **Trade ETH and USDT from your own Ethereum wallet.**
 
 [Open Neon](https://neon.alx21.chatgpt.site) · [Trading guide](docs/trading.md) · [Testnet walkthrough](docs/testnet.md) · [Validation](VALIDATION.md) · [Build status](https://github.com/agammann/neon/actions/workflows/verify.yml)
