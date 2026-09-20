@@ -1,65 +1,46 @@
 # Neon
 
-**Trade ETH and USDT from your own Ethereum wallet.**
+Neon is being rebuilt as an **ETH funded perpetual trading terminal on Ethereum Mainnet**. The new terminal displays the live ETH-USDT perpetual market, signs orders in the user's wallet, and routes execution to [Synthetix](https://synthetix.io/). Neon does not operate the matching engine or hold collateral in a Neon contract.
 
-[Open Neon](https://neon.alx21.chatgpt.site) · [Trading guide](docs/trading.md) · [Testnet walkthrough](docs/testnet.md) · [Validation](VALIDATION.md) · [Build status](https://github.com/agammann/neon/actions/workflows/verify.yml)
+**Release state:** this `eth-perps` branch is a development candidate. The [currently published Neon site](https://neon.alx21.chatgpt.site/) and GitHub `main` still run the earlier ETH/USDT spot app. No Synthetix trade or withdrawal with real money has been tested or deployed from Neon. Do not treat this branch as a verified production exchange.
 
-Neon provides native ETH / USDT instant swaps through Uniswap v3 and a shared WETH / USDT limit order book settled through 0x. Funds remain in users' wallets until settlement. There is no Neon deposit account, withdrawal queue, or operator settlement key.
+## What the rebuild does
 
-## Choose where to start
+The terminal reads live Synthetix ETH-USDT mark, index, funding, order book and candles. With an Ethereum wallet, an eligible trader can wrap ETH into WETH, deposit WETH to Synthetix's published Mainnet deposit contract, discover a trading account, sign leverage and market or limit orders, inspect positions and open orders, submit reduce-only closes or cancellations, request a WETH withdrawal, and unwrap WETH back to ETH. Neon checks the venue's [wallet trading-access endpoint](https://developers.synthetix.io/developer-resources/api/rest-api/info/getIsWhitelisted) before enabling deposits or orders. Wallet and Synthetix signatures are required; Neon has no operator trading key.
 
-| Goal | Start here | Funds and network |
-| --- | --- | --- |
-| Use the published app | [Open Neon](https://neon.alx21.chatgpt.site) in a wallet enabled browser | Real funds on Ethereum Mainnet, chain 1 |
-| Try the Alice and Bob workflow | Run the local testnet below | Disposable funds on a local Ethereum fork, chain 31337 |
-| Explore matching concepts | Select **Bob + Alice demo** in the app | Synthetic balances in the current browser tab |
-| Develop or operate Neon | [Development guide](docs/development.md) | Separate mainnet and test profiles |
+Synthetix currently uses **WETH as collateral, but its perpetuals are USDT quoted and settled**. Fees, funding and realized PnL affect a USDT balance, which can become debt and can trigger a forced collateral exchange. WETH also receives a valuation haircut. This is an ETH funded product, not an ETH denominated inverse perpetual. See the [ETH perpetual guide](docs/eth-perps.md) before funding an account.
 
-The mainnet limit order book needs users to publish orders and other users to fill them. Posting a crossing order does not automatically match it. Instant swaps use existing Uniswap liquidity. WETH is the wrapped form of ETH used by limit orders; the app includes wrap and unwrap controls.
+The earlier spot terminal remains in this branch at `/spot.html`, along with its [trading guide](docs/trading.md), [Alice and Bob local testnet](docs/testnet.md), and [historical validation](VALIDATION.md). These describe the spot app, not the new perpetual interface.
 
-## Interactive local testnet
+## Run the rebuild locally
 
-Install [Git](https://git-scm.com/downloads), [Node.js](https://nodejs.org/en/download) 22.13 or newer, and the pinned package manager. Node 22 is used in CI; Node 24 has also been exercised locally.
+Install Node.js 22.13 or newer and pnpm 11.19.0. From this checkout:
 
 ```sh
-npm install --global pnpm@11.19.0
-git clone https://github.com/agammann/neon.git
-cd neon
 pnpm install --frozen-lockfile
-pnpm testnet
+pnpm build
+pnpm start
 ```
 
-These commands work in PowerShell and a POSIX shell. If PowerShell blocks the `npm.ps1` or `pnpm.ps1` shim, use `npm.cmd` or `pnpm.cmd` for the same commands.
+Open `http://127.0.0.1:4318/`. The market screen reads the live Synthetix API, so network access is required. The browser wallet must be on Ethereum Mainnet, chain 1. **The controls can submit real-money requests if used with a funded wallet.** Use a disposable fork for contract tests; do not use a real wallet for exploratory QA.
 
-Wait for **Test lab ready**, then open `http://127.0.0.1:4319/` on the same computer. The page must say **LOCAL TESTNET · NO REAL FUNDS**. Select Alice or Bob and click **Connect wallet**. The built in disposable wallet handles test confirmations; no extension, faucet, seed phrase, or real funds are needed.
+To keep an existing local Neon instance running, choose another port: `$env:PORT=4320; pnpm start` in PowerShell or `PORT=4320 pnpm start` in a POSIX shell.
 
-Follow the [Alice and Bob walkthrough](docs/testnet.md) for exact steps and expected balances. Internet access is needed to read Ethereum state. Keep the terminal running; **Ctrl+C** stops the lab. Restarting creates fresh wallets and clears the lab book.
+## Verify
 
-## Release status
+```sh
+pnpm test
+pnpm build
+pnpm check:perps
+pnpm test:perps:fork
+```
 
-The application is publicly deployed with mainnet trading enabled. Recorded release verification passed **25 tests**, including two contract fork suites, plus browser transactions with disposable wallets. Mainnet contract identity, signing domain, and quote checks passed. **A real money mainnet transaction test was intentionally skipped by the project owner.** No independent security audit is claimed.
+`pnpm test` checks the signed order payload, actionable account/order parsing, and bounded venue proxy. `pnpm check:perps` reads current Mainnet contract bytecode and public Synthetix market and collateral configuration, without signing or spending. The fork test runs Neon's wrap, unwrap and deposit functions with disposable ETH/WETH against copied Mainnet contract state. [Recorded evidence](validation/perps-mainnet-readiness.json) contains no wallet keys or real transaction.
 
-The local testnet copies actual Ethereum contract code and state. It is not Sepolia or an official issuance of test USDT. See [Validation](VALIDATION.md) for dated evidence and verification boundaries.
-
-## Documentation
-
-| Guide | Covers |
-| --- | --- |
-| [Trading](docs/trading.md) | Wallet connection, swaps, orders, cancellation, and permissions |
-| [Local testnet](docs/testnet.md) | Alice and Bob example with expected results |
-| [Development](docs/development.md) | Commands, source layout, persistence, configuration, and deployment |
-| [Troubleshooting](docs/troubleshooting.md) | Installation, RPC, wallet, approval, and order issues |
-| [Validation](VALIDATION.md) | Test coverage, evidence, and release decision |
-| [Contributing](CONTRIBUTING.md) | Focused changes, checks, and bug reports |
+These checks do **not** demonstrate an authenticated live fill, liquidation handling, or a completed withdrawal. The [Synthetix API environment documentation](https://developers.synthetix.io/environments) lists a production Mainnet API; its public API testnet remains in development. A real-money pilot, threat review of the integrated flow, and independent security assessment remain before public launch.
 
 ## Custody and trust
 
-Neon stores public signed orders and indexed receipts, not private keys. Disconnecting a wallet does not cancel orders or revoke approvals. Transactions require gas, and cancellation or revocation only takes effect when confirmed.
+The fixed WETH and Synthetix deposit addresses are in [synthetix-client.js](src/synthetix-client.js). The app requests an exact WETH approval and signs each trade; withdrawal destinations default to the connected wallet. This removes a Neon-controlled vault, but **cannot make user loss or rug risk impossible**. Synthetix contract governance, off-chain matching, website updates, API availability, wallet compromise, funding, liquidation and market risk still matter. Neon is independent of Synthetix and LN Markets.
 
-The 0x proxy has its own upgrade governance. Tether has issuer controls. Website, wallet, dependency, protocol, RPC, liquidity, and network risks remain. One confirmation is not finality. Fixed contract addresses and protocol references are listed in the [trading guide](docs/trading.md#contracts-and-references).
-
-## Source and attribution
-
-Source is public for inspection. No open source license is granted for Neon. Dependency licenses are preserved in [Third party notices](THIRD_PARTY_NOTICES.md).
-
-The educational simulator was inspired by [Brian Nigito’s How to Build an Exchange](https://www.janestreet.com/tech-talks/building-an-exchange/). Neon has no affiliation with Jane Street and does not claim its architecture or performance.
+Source is public for inspection. No open source license is granted for Neon. Third-party notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

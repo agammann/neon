@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-09-20T00:08:32.184Z",
+  "chainId": 1,
+  "venue": "Synthetix",
+  "market": "ETH-USDT",
+  "marketOpen": true,
+  "closeOnly": false,
+  "maxLeverage": 25,
+  "minOrderSize": "0.01",
+  "wethCollateral": true,
+  "tradingAccessEndpointAvailable": true,
+  "contractCodeHashes": {
+    "weth": "0xd0a06b12ac47863b5c7be4185c2deaad1c61557033f56c7d4ea74429cbb25e23",
+    "deposit": "0xa7022e521c634305b0b86f45a8c10af47878d58952877dac7af4a6cbbb165d34"
+  },
+  "transactionsSubmitted": 0,
+  "realFundsSpent": false
+}

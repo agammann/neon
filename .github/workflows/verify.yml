@@ -17,8 +17,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
       - run: pnpm build
-      - run: git diff --exit-code -- dist/wallet.bundle.js
+      - run: git diff --exit-code -- dist/wallet.bundle.js dist/perps.bundle.js dist/index.html
       - run: pnpm audit --prod
+      - name: Exercise Neon WETH collateral flow in a disposable Ethereum fork
+        run: pnpm test:perps:fork
+        timeout-minutes: 3
+      - name: Verify ETH perpetual venue without signing
+        run: pnpm check:perps
+        timeout-minutes: 2
       - name: Exercise deployed contracts in disposable Ethereum forks
         if: github.ref == 'refs/heads/main'
         run: node --test tests/fork.integration.mjs tests/orders.fork.integration.mjs
@@ -31,5 +37,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           name: mainnet-readiness
-          path: validation/mainnet-readiness.json
+          path: |
+            validation/mainnet-readiness.json
+            validation/perps-mainnet-readiness.json
 

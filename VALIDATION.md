@@ -1,5 +1,7 @@
 # Neon validation
 
+> Historical validation for Neon's original ETH/USDT spot app. It does not verify the new ETH-funded perpetual terminal. See [perpetual verification](README.md#verify).
+
 [Back to Neon](README.md) · [Reproduce the browser workflow](docs/testnet.md) · [GitHub verification](https://github.com/agammann/neon/actions/workflows/verify.yml)
 
 ## Release decision
