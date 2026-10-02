@@ -24,6 +24,26 @@ Results below were recorded September 17, 2026 UTC, September 16 Pacific. Market
 | Published assets | Four JavaScript/CSS asset hashes matched the tested build; rendered interface checked separately |
 | Dependency and CI checks | Production advisory check and the release GitHub workflow passed |
 
+## Pagination and browser lifecycle verification
+
+The following checks were repeated on October 2, 2026, using Node 24.19.0, pnpm 11.19.0, and Chrome 154.0.8037.95 on Windows. They cover the pagination and native WebMCP cache-restoration fixes; they do not replace the dated release record above.
+
+| Area | Evidence and result |
+| --- | --- |
+| Automated suites | 27 passed: 25 offline tests, including [pagination regressions](tests/order-pagination.test.mjs), and both contract fork integrations |
+| Build and dependencies | `pnpm check`, `pnpm build`, and `pnpm audit --prod` passed; Ganache used its JavaScript fallback because its optional native module did not support this Node build |
+| Pagination in the rebuilt browser bundle | Delayed and failed API responses verified that rapid clicks cannot skip pages, a failed or wrong-network response preserves the displayed page, retry loads the intended page, and refresh reloads the current page |
+| Pagination layout | Desktop and 390-pixel mobile viewports checked; no horizontal page overflow |
+| Native WebMCP | Native `read_exchange` and `place_simulated_order` calls worked before and after two actual Back/Forward-cache restorations; all three registered tools and the existing exchange/form state survived; an ordinary reload registered each tool once |
+| Fresh local testnet walkthrough | Seven successful transactions on chain 31337: wrap, two approvals, partial fill, cancellation, revocation, and unwrap. Alice gained 2 USDT, Bob spent 2 USDT, Alice retained 0.001 WETH, Bob ended with zero WETH, and both wallets had zero 0x allowances. One fill was indexed |
+| Local failure handling | A rejected signature published no order; filling the cancelled selection failed before the wallet confirmation dialog |
+| Deployed demo | Demo balances, self-trade and insufficient-funds rejection, reset dismissal/confirmation, cancellation, and the 390-pixel layout passed without wallet interaction |
+| Deployed readiness | Storage health and settlement readiness both returned HTTP 200 at 10:17 UTC; chain 1, verified contracts, zero protocol fee multiplier, block 26103990 |
+
+Pagination failure cases used controlled API responses against the rebuilt interface. Contract suites and the local walkthrough executed copied Ethereum contract code with disposable wallets. No real wallet was connected and no mainnet transaction or approval was submitted.
+
+Native WebMCP was explicitly enabled with Chrome's `--enable-features=WebMCP,WebMCPTesting` testing configuration; no shim was used. Default Chrome in this environment did not expose the API. This verifies the native browser API and lifecycle, not compatibility with every external browser-agent client. The deployed demo emitted a content-policy warning for a Cloudflare-injected inline script; its tested controls remained functional.
+
 ## Evidence files
 
 | File | Scope |
