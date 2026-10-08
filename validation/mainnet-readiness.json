@@ -1,9 +1,9 @@
 {
-  "checkedAt": "2026-09-17T03:14:15.788Z",
+  "checkedAt": "2026-10-08T07:03:23.668Z",
   "chainId": 1,
-  "blockNumber": 25994447,
-  "blockHash": "0xcc620b9dee207c5e0e568af394e6523eaab82d0f017397de853d413e7308511b",
-  "blockTimestamp": 1789614839,
+  "blockNumber": 26146060,
+  "blockHash": "0x4eb239632e8c7dbaee462113d79c77820270a9864e4e5120d4941475627663e4",
+  "blockTimestamp": 1791442991,
   "contracts": "verified",
   "protocolFeeMultiplier": "0",
   "exchangeOwner": "0x618F9C67CE7Bf1a50afa1E7e0238422601b0ff6e",
@@ -38,18 +38,18 @@
     {
       "direction": "sell",
       "amountIn": "10000000000000000",
-      "amountOut": "24319123",
-      "minimumOutput": "24197527",
+      "amountOut": "25606946",
+      "minimumOutput": "25478911",
       "feeTier": 500,
-      "block": 25994448
+      "block": 26146060
     },
     {
       "direction": "buy",
       "amountIn": "10000000",
-      "amountOut": "4107873833438861",
-      "minimumOutput": "4087334464271666",
+      "amountOut": "3901282794940714",
+      "minimumOutput": "3881776380966010",
       "feeTier": 500,
-      "block": 25994448
+      "block": 26146060
     }
   ],
   "transactionsSubmitted": 0,

@@ -26,6 +26,6 @@ try {
   const codeHashes={};
   for(const [name,address] of Object.entries({...ADDRESSES,EXCHANGE}))codeHashes[name]={address,keccak256:keccak256(await provider.getCode(address))};
   const evidence={checkedAt:new Date().toISOString(),...infrastructure,exchangeOwner:await exchange.owner(),signingDomainMatches:true,codeHashes,quotes,transactionsSubmitted:0,signaturesRequested:0,realFundsSpent:false};
-  await writeFile('validation/mainnet-readiness.json',JSON.stringify(evidence,null,2)+'\n');
+  await writeFile(process.env.NEON_READINESS_OUTPUT||'validation/mainnet-readiness.json',JSON.stringify(evidence,null,2)+'\n');
   console.log(JSON.stringify(evidence,null,2));
 } finally {provider.destroy();}

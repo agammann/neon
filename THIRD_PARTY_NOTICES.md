@@ -1,6 +1,6 @@
 # Third party licenses
 
-Required notices for bundled dependencies. Identical repeated sections have been consolidated; every distinct notice is retained. These licenses apply to their respective dependencies. Neon itself has no open source license grant.
+Required notices for bundled dependencies. Identical repeated sections have been consolidated; every distinct notice is retained. These licenses apply to their respective dependencies. Neon is available under the [MIT license](LICENSE).
 
 ## ens-normalize
 

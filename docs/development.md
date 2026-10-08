@@ -4,7 +4,7 @@
 
 ## Prerequisites and setup
 
-Use Git, Node.js 22.13 or newer, and pnpm 11.19.0. Install from the [Node.js download page](https://nodejs.org/en/download) and follow the [pnpm installation reference](https://pnpm.io/installation) if a package manager is not available. The repository pins pnpm; avoid an unversioned upgrade while reproducing a release.
+Use Git, Node.js 24.19.0, and pnpm 11.19.0 to reproduce the release. Install from the [Node.js download page](https://nodejs.org/en/download) and follow the [pnpm installation reference](https://pnpm.io/installation) if a package manager is not available. The repository pins pnpm; avoid an unversioned upgrade while reproducing a release.
 
 Follow the [clone and install commands](../README.md#interactive-local-testnet). Run all commands below from the repository root. The lockfile and `pnpm-workspace.yaml` are part of the build: keep the package overrides and build permissions intact.
 
@@ -22,6 +22,8 @@ Follow the [clone and install commands](../README.md#interactive-local-testnet).
 | `pnpm check:mainnet` | Verify live contracts, signing hash, and both quote directions | Read only; rewrites `validation/mainnet-readiness.json` |
 | `pnpm build` | Build the public wallet bundle and Worker | Updates tracked browser bundle plus ignored Worker artifacts |
 | `pnpm audit --prod` | Check known production dependency advisories | Queries the package advisory service |
+| `pnpm package:release` | Package the clean committed source with its commit/tree manifest and checksums | Requires Git; writes ignored `release-artifacts/` |
+| `pnpm test:consumer` | Verify and extract that ZIP into a fresh directory, install, build and test | Requires Python 3.12+; writes ignored `consumer-output/` |
 
 For a local mainnet preview:
 
@@ -92,4 +94,12 @@ Publishing GitHub changes alone does not deploy the website. Documentation chang
 
 Bodies are limited to 8 KiB. The API allows 60 requests per minute per request IP, up to 20 cached active orders per maker, and 10,000 total unexpired stored orders. Receipt candidates and order pages are bounded. See [book behavior](trading.md#history-and-book-behavior) for visible pagination and history limits.
 
-CI checks offline tests, browser build reproduction, and production dependencies for pushes and pull requests. Main branch runs also execute both fork suites and the read only mainnet check, uploading a readiness artifact. No CI step signs or broadcasts a real mainnet transaction.
+CI checks offline tests, browser build reproduction, all dependency advisories, both contract-fork suites, the read-only mainnet check and a fresh source-ZIP consumer on Windows and Linux. Main branch publication uses the exact checked commit and verified asset digests; an existing published version is left unchanged. No CI step signs or broadcasts a real mainnet transaction. `NEON_READINESS_OUTPUT` can select a separate existing output directory for the read-only check; CI uses it to preserve the committed historical snapshot.
+
+## Upgrade and recovery
+
+For a new local lab release, stop the existing process with **Ctrl+C**, extract the new source into a separate directory, install its frozen lockfile and follow the same walkthrough. Lab balances and orders deliberately reset; `.lab/` is a test record, not a wallet backup. Reload both tabs after a restart because their participant addresses belong to the old session.
+
+For the local mainnet preview, stop the server before copying `.local/neon.db` into a private backup location. Keep that database with the old source directory when preparing an upgrade. If the new preview fails, stop it and restart the old version with its original database. Do not copy a test lab database into the mainnet preview. Disconnecting, clearing a browser or restoring the local book does not cancel an onchain order or revoke a token allowance; those actions must be confirmed through the connected wallet.
+
+Independent developers can add adapters or trading UI using the MIT source and existing tests. Keep disposable signing code confined to the lab build, preserve the fixed chain checks and use fresh copied-contract fixtures before changing settlement behavior. Report failures through the [contribution guide](../CONTRIBUTING.md) with the release, command, Node/browser version and observed error; leave out private keys and credential-bearing RPC URLs.

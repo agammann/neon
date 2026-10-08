@@ -4,7 +4,7 @@
 
 ## Propose a focused change
 
-Use an issue for an ordinary bug or proposed improvement, then keep a pull request focused on that behavior. Describe the problem, resulting behavior, and validation performed. Source visibility does not change the repository's licensing status; Neon has no open source license grant. Third party notices must be preserved.
+Use an issue for an ordinary bug or proposed improvement, then keep a pull request focused on that behavior. Describe the problem, resulting behavior, and validation performed. Neon is released under the MIT license. Preserve the license and third party notices.
 
 ## Work locally
 
@@ -21,7 +21,7 @@ pnpm test
 pnpm check
 pnpm build
 git diff --exit-code -- dist/wallet.bundle.js
-pnpm audit --prod
+pnpm audit
 ```
 
 The bundle comparison should be clean after the intended regenerated bundle has been staged or committed. Before that, review the expected bundle diff instead of treating it as a failure. Changes to settlement, signatures, network guards, or the API also need `pnpm test:fork` and `pnpm test:orders`.
