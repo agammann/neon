@@ -15,7 +15,7 @@ Follow the [clone and install commands](../README.md#interactive-local-testnet).
 | `pnpm testnet` | Build and run the disposable browser lab | Reads mainnet state, executes only locally; port 4319 |
 | `pnpm build:lab` | Build the test profile without starting a server | Writes ignored `.lab/` artifacts |
 | `pnpm start` | Serve the mainnet interface locally | Port 4318; real wallet required for actual trades |
-| `pnpm test` | Run the offline suite | 23 tests at the recorded release |
+| `pnpm test` | Run the offline suite | 25 offline tests |
 | `pnpm check` | Check authored simulator JavaScript syntax | No network |
 | `pnpm test:fork` | Exercise ETH / USDT swaps against copied contracts | Reads Ethereum; submits only inside Ganache |
 | `pnpm test:orders` | Exercise 0x orders, API, cancellation, expiry, and reorg recovery | Reads Ethereum; submits only inside Ganache |

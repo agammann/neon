@@ -39,7 +39,7 @@ You can also download `neon_1.0.0_source.zip` and `SHA256SUMS` from the [v1.0.0 
 
 ## Release status
 
-The application is publicly deployed with mainnet trading enabled. Recorded release verification passed **25 tests**, including two contract fork suites, plus browser transactions with disposable wallets. Mainnet contract identity, signing domain, and quote checks passed. **A real money mainnet transaction test was intentionally skipped by the project owner.** No independent security audit is claimed.
+The application is publicly deployed with mainnet trading enabled. Recorded release verification passed **27 tests**, including two contract fork suites, plus browser transactions with disposable wallets. Mainnet contract identity, signing domain, and quote checks passed. **A real money mainnet transaction test was intentionally skipped by the project owner.** No independent security audit is claimed.
 
 The local testnet copies actual Ethereum contract code and state. It is not Sepolia or an official issuance of test USDT. See [Validation](VALIDATION.md) for dated evidence and verification boundaries.
 

@@ -4,7 +4,7 @@
 
 The October 8, 2026 release checks use Node 24.19.0, pnpm 11.19.0, Windows 11 x64 and Chrome 155.0.8059.12. The release workflow repeats installation, build reproduction, the offline suite, both fork suites, dependency audit and fresh source-ZIP extraction on Windows and Linux before publishing.
 
-The local checks passed 23 offline tests plus two actual contract-fork suites. The fork suites execute copied Uniswap/token/0x contracts with disposable balances and confirm swaps, partial and full fills, cancellation, allowance revocation, expiry, invalid signatures, duplicate receipts and simulated chain-state recovery. Wrong-chain refusal and separation of production and lab signers are checked explicitly. The full dependency audit reports zero advisories for the released lockfile.
+The local checks passed 25 offline tests plus two actual contract-fork suites. The fork suites execute copied Uniswap/token/0x contracts with disposable balances and confirm swaps, partial and full fills, cancellation, allowance revocation, expiry, invalid signatures, duplicate receipts and simulated chain-state recovery. Wrong-chain refusal and separation of production and lab signers are checked explicitly. The full dependency audit reports zero advisories for the released lockfile.
 
 The actual browser walkthrough confirms seven successful chain-31337 receipts: wrap, maker approval, taker approval, half fill, cancellation, revocation and unwrap. Alice receives exactly 2 test USDT, Bob spends exactly 2 test USDT, Alice retains 0.001 WETH, Bob finishes with no WETH and both 0x allowances are zero. A rejected signature publishes no order, and trying to fill the cancelled order submits no transaction.
 
