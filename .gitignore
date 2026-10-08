@@ -9,3 +9,5 @@ node_modules/
 .local/
 dist/server/
 dist/.openai/
+release-artifacts/
+consumer-output/
