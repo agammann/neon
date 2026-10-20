@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1
+
+- Harden release publishing by reading each artifact through one stable file handle, rejecting symbolic links and non-regular files, bounding size, and detecting changes during the read.
+- Refresh the stable source package and installation instructions for the corrected publishing path.
+
 ## 1.0.0
 
 - Publish a versioned source ZIP, source manifest and SHA-256 checksums with a fresh installation check on Windows and Linux.
