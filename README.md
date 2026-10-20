@@ -23,7 +23,7 @@ Install [Git](https://git-scm.com/downloads), [Node.js](https://nodejs.org/en/do
 
 ```sh
 npm install --global pnpm@11.19.0
-git clone --branch v1.0.0 --depth 1 https://github.com/agammann/neon.git
+git clone --branch v1.0.1 --depth 1 https://github.com/agammann/neon.git
 cd neon
 pnpm install --frozen-lockfile
 pnpm testnet
@@ -35,11 +35,11 @@ Wait for **Test lab ready**, then open `http://127.0.0.1:4319/` on the same comp
 
 Follow the [Alice and Bob walkthrough](docs/testnet.md) for exact steps and expected balances. Internet access is needed to read Ethereum state. Keep the terminal running; **Ctrl+C** stops the lab. Restarting creates fresh wallets and clears the lab book.
 
-You can also download `neon_1.0.0_source.zip` and `SHA256SUMS` from the [v1.0.0 release](https://github.com/agammann/neon/releases/tag/v1.0.0), verify the ZIP with `Get-FileHash` in PowerShell or `sha256sum` in a POSIX shell, extract it, and run the same install and testnet commands inside `neon-1.0.0`. No wallet extension or private key is needed for this lab.
+You can also download `neon_1.0.1_source.zip` and `SHA256SUMS` from the [v1.0.1 release](https://github.com/agammann/neon/releases/tag/v1.0.1), verify the ZIP with `Get-FileHash` in PowerShell or `sha256sum` in a POSIX shell, extract it, and run the same install and testnet commands inside `neon-1.0.1`. No wallet extension or private key is needed for this lab.
 
 ## Release status
 
-The application is publicly deployed with mainnet trading enabled. Recorded release verification passed **27 tests**, including two contract fork suites, plus browser transactions with disposable wallets. Mainnet contract identity, signing domain, and quote checks passed. **A real money mainnet transaction test was intentionally skipped by the project owner.** No independent security audit is claimed.
+The application is publicly deployed with mainnet trading enabled. The source release workflow tests on Windows and Linux, including contract-fork and release-consumer checks. Earlier browser transactions used disposable wallets; mainnet contract identity, signing domain, and quote checks passed. **A real money mainnet transaction test was intentionally skipped by the project owner.** No independent security audit is claimed.
 
 The local testnet copies actual Ethereum contract code and state. It is not Sepolia or an official issuance of test USDT. See [Validation](VALIDATION.md) for dated evidence and verification boundaries.
 
