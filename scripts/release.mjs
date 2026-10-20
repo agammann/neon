@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import readReleaseArtifact from './release-reader.mjs';
 
 const publish = async ({ github, context, core }) => {
   if (
@@ -104,9 +105,7 @@ const publish = async ({ github, context, core }) => {
   const checksumLines = [];
   const readFile = (filename) => {
     const location = path.join(directory, filename);
-    if (!fs.lstatSync(location).isFile())
-      throw new Error('Artifact is not a regular file.');
-    return fs.readFileSync(location);
+    return readReleaseArtifact(location);
   };
   const digest = (data) =>
     'sha256:' + crypto.createHash('sha256').update(data).digest('hex');
