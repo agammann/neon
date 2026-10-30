@@ -58,7 +58,7 @@ Test wallets were disposable. Evidence files contain no private keys or session 
 
 ## Reproduce the checks
 
-Run the [development commands](docs/development.md#commands) and follow the [browser walkthrough](docs/testnet.md). CI runs offline checks, rebuild verification, and production dependency auditing; main branch runs also execute the two fork suites and read only mainnet checks.
+Run the [development commands](docs/development.md#commands) and follow the [browser walkthrough](docs/testnet.md). Pull-request and main-branch CI run offline checks, rebuild verification, and dependency auditing. The two contract-fork suites and read-only mainnet checks require an explicit manual workflow dispatch with `live_rpc_checks` enabled; the input defaults to off.
 
 [Live readiness](https://neon.alx21.chatgpt.site/api/readiness) checks recent Ethereum data and settlement configuration. It returns HTTP 503 on failure. [Storage health](https://neon.alx21.chatgpt.site/api/health) checks storage separately. Neither endpoint certifies wallet compatibility, transaction execution, or safety.
 
