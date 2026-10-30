@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2
+
+- Return safe validation responses for invalid order and receipt requests, while keeping internal storage and Ethereum provider errors out of client responses.
+- Keep Ethereum RPC integration checks available by explicit manual CI opt-in; routine pull-request and main-branch checks run without a live provider.
+- Preserve the existing wallet and database schema while packaging the corrected Worker source.
+
 ## 1.0.1
 
 - Harden release publishing by reading each artifact through one stable file handle, rejecting symbolic links and non-regular files, bounding size, and detecting changes during the read.
