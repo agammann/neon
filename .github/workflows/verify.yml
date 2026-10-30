@@ -4,6 +4,12 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      live_rpc_checks:
+        description: Run contract forks and readiness against a live Ethereum RPC
+        type: boolean
+        required: true
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -38,9 +44,11 @@ jobs:
       - run: git diff --exit-code -- dist/wallet.bundle.js
       - run: pnpm audit
       - name: Exercise copied contracts with disposable balances
+        if: github.event_name == 'workflow_dispatch' && inputs.live_rpc_checks == true
         run: node --test tests/fork.integration.mjs tests/orders.fork.integration.mjs
         timeout-minutes: 5
       - name: Read-only mainnet readiness
+        if: github.event_name == 'workflow_dispatch' && inputs.live_rpc_checks == true
         run: pnpm check:mainnet
         timeout-minutes: 2
         env:

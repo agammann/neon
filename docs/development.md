@@ -94,7 +94,7 @@ Publishing GitHub changes alone does not deploy the website. Documentation chang
 
 Bodies are limited to 8 KiB. The API allows 60 requests per minute per request IP, up to 20 cached active orders per maker, and 10,000 total unexpired stored orders. Receipt candidates and order pages are bounded. See [book behavior](trading.md#history-and-book-behavior) for visible pagination and history limits.
 
-CI checks offline tests, browser build reproduction, all dependency advisories, both contract-fork suites, the read-only mainnet check and a fresh source-ZIP consumer on Windows and Linux. Main branch publication uses the exact checked commit and verified asset digests; an existing published version is left unchanged. No CI step signs or broadcasts a real mainnet transaction. `NEON_READINESS_OUTPUT` can select a separate existing output directory for the read-only check; CI uses it to preserve the committed historical snapshot.
+Pull-request and main-branch CI check offline tests, browser build reproduction, dependency advisories, and a fresh source-ZIP consumer on Windows and Linux. The contract-fork suites and read-only mainnet readiness check use a live Ethereum RPC, so they run only when a maintainer manually dispatches the workflow with `live_rpc_checks` enabled. The input defaults to off. Main branch publication uses the exact checked commit and verified asset digests; an existing published version is left unchanged. No CI step signs or broadcasts a real mainnet transaction. `NEON_READINESS_OUTPUT` can select a separate existing output directory for the read-only check; CI uses it to preserve the committed historical snapshot.
 
 ## Upgrade and recovery
 
