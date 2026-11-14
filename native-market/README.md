@@ -2,7 +2,9 @@
 
 This is an **experimental, local-chain prototype** of an ETH-funded ETH/USD market. Alice and Bob deposit native **test ETH** directly into `NeonNativeMarket`, take opposite sides of a bilateral position, settle gains and losses in ETH, and withdraw native ETH. The trading flow has no WETH, USDT, token approvals, exchange wallet, or offchain custody account.
 
-The contract deliberately deploys **only on chain 31337**. It refuses Ethereum Mainnet and Sepolia. The oracle is an adjustable mock controlled by the lab. **Do not send real ETH or use this code as a live exchange.** The published Neon website and the existing `main` branch still run the earlier ETH/USDT spot product; this branch does not update that deployment.
+The two Solidity contract files are available under the repository's [MIT license](../LICENSE).
+
+The contract deliberately deploys **only on chain 31337**. It refuses Ethereum Mainnet and Sepolia. The oracle is an adjustable mock controlled by the lab. **Do not send real ETH or use this code as a live exchange.** The published Neon website runs the ETH/USDT spot product; this local prototype does not update that deployment.
 
 ## Run Alice and Bob locally
 
@@ -28,7 +30,9 @@ Use **Reset lab** to clear those transactions. The server keeps the disposable p
 
 ## Contract model and safety boundary
 
-Each maker offer reserves margin in the contract. A counterparty must reserve an equal amount to match. Either position participant can close at the current oracle price. Anyone can trigger liquidation once the calculated loss reaches 80% of one side's margin. If the oracle is more than an hour old, priced actions stop; after a position has been open for a full day and the oracle has not updated for a full day (or has stopped responding), anyone may trigger a **neutral return of both original margins**. That escape sacrifices unrealized PnL and is not a fair-price guarantee.
+Each maker offer reserves margin in the contract. A counterparty must reserve an equal amount to match. Either position participant can close at the current oracle price. Anyone can trigger liquidation once the calculated loss reaches 80% of one side's margin. If the oracle is invalid, more than an hour old, or unresponsive, priced actions stop. Anyone may record its current health using **Record oracle health**. A neutral refund requires a position older than a day, an invalid reading recorded more than a day earlier, and a currently invalid reading. A successful healthy observation or successful priced market action clears the recorded outage and restarts any later waiting period. A reverted transaction cannot clear it.
+
+The checkpoint proves invalid readings at two observations separated by at least a day; it cannot prove uninterrupted failure or detect an unobserved recovery between them. The neutral refund sacrifices unrealized PnL and is not a fair-price guarantee. This limitation is acceptable only for the disposable lab and needs a different oracle design before real-money use.
 
 There is no owner, upgrade hook, fee recipient, exchange withdrawal key, or operator settlement authority in this prototype. Withdrawals are limited to each trader's available balance. The contract tracks total liabilities, and the tests verify that settlement conserves the deposited ETH. These features reduce a narrow operator rug path, but they **do not make loss or a rug impossible**: contract bugs, oracle manipulation, transaction ordering, user mistakes, a compromised interface, and Ethereum risks remain. The mock oracle is trivially controllable and is acceptable only in this disposable environment.
 

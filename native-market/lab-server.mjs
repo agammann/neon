@@ -8,9 +8,9 @@ import {compileNativeMarket} from './compile.mjs';
 
 const root=dirname(fileURLToPath(import.meta.url));
 const port=Number(process.env.NEON_NATIVE_PORT||4322);
-if(!Number.isInteger(port)||port<1024||port>65535)throw new Error('Invalid local lab port');
-const chain=ganache.provider({chain:{chainId:31337},wallet:{totalAccounts:3,defaultBalance:100},logging:{quiet:true}});
-const provider=new BrowserProvider(chain);
+if(!Number.isInteger(port)||(port!==0&&port<1024)||port>65535)throw new Error('Invalid local lab port');
+export const chain=ganache.provider({chain:{chainId:31337},wallet:{totalAccounts:3,defaultBalance:100},logging:{quiet:true}});
+const provider=new BrowserProvider(chain,undefined,{cacheTimeout:-1});
 const [alice,bob,carol]=await Promise.all([provider.getSigner(0),provider.getSigner(1),provider.getSigner(2)]);
 const built=await compileNativeMarket();
 const oracle=await new ContractFactory(built.oracle.abi,built.oracle.evm.bytecode.object,alice).deploy(2000n*100000000n);
@@ -44,7 +44,8 @@ async function state(){
     return {name:parsed.name,args:parsed.args.map(value=>typeof value==='bigint'?value.toString():value),transactionHash:log.transactionHash};
   });
   let price=null;try{price=fixed8(await market.currentPrice8());}catch{} // Keep the stale-refund controls usable during an oracle outage.
-  return {chainId:31337,contract:await market.getAddress(),oracle:await oracle.getAddress(),price,balances,offers,positions,events};
+  const outageObservedAt=Number(await market.oracleOutageObservedAt());
+  return {chainId:31337,contract:await market.getAddress(),oracle:await oracle.getAddress(),price,outageObservedAt,balances,offers,positions,events};
 }
 
 function amount(input){
@@ -56,7 +57,7 @@ function amount(input){
 async function transact(body){
   if(!body||typeof body!=='object'||Array.isArray(body))throw new Error('Invalid action');
   const signer=actors[body.actor];
-  if(body.action!=='setPrice'&&body.action!=='reset'&&!signer)throw new Error('Choose Alice or Bob');
+  if(!['setPrice','reset','liquidate','refund','observe'].includes(body.action)&&!signer)throw new Error('Choose Alice or Bob');
   let tx;
   switch(body.action){
     case 'deposit': tx=await market.connect(signer).deposit({value:amount(body.amount)});break;
@@ -78,10 +79,11 @@ async function transact(body){
     case 'close':tx=await market.connect(signer).closePosition(String(body.id));break;
     case 'liquidate':tx=await market.connect(carol).liquidate(String(body.id));break;
     case 'refund':tx=await market.connect(carol).refundStalePosition(String(body.id));break;
+    case 'observe':tx=await market.connect(carol).observeOracle();break;
     case 'setPrice':{
       const value=Number(body.price);
       if(!Number.isInteger(value)||value<100||value>100000)throw new Error('Choose a test price from $100 to $100,000');
-      tx=await oracle.setPrice(BigInt(value)*100000000n);break;
+      tx=await oracle.setPrice(BigInt(value)*100000000n,{gasLimit:100000});break;
     }
     case 'reset':{
       await chain.request({method:'evm_revert',params:[initialSnapshot]});
@@ -95,10 +97,11 @@ async function transact(body){
   return {message:'Confirmed on disposable local chain',hash:tx.hash,state:await state()};
 }
 
-createServer(async(req,res)=>{
+export const server=createServer(async(req,res)=>{
+  const listenPort=server.address().port;
   const origin=req.headers.origin;
-  if(origin&&origin!==`http://127.0.0.1:${port}`){res.writeHead(403);res.end('Forbidden');return;}
-  const url=new URL(req.url,`http://127.0.0.1:${port}`);
+  if(origin&&origin!==`http://127.0.0.1:${listenPort}`){res.writeHead(403);res.end('Forbidden');return;}
+  const url=new URL(req.url,`http://127.0.0.1:${listenPort}`);
   try{
     let result;
     if(req.method==='GET'&&url.pathname==='/api/state')result=json(await state());
@@ -113,4 +116,4 @@ createServer(async(req,res)=>{
     }else result={status:404,body:'Not found',type:'text/plain'};
     res.writeHead(result.status,{'content-type':result.type,'cache-control':'no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"});res.end(result.body);
   }catch(e){const result=json({error:e.shortMessage||e.message||'Local action failed'},400);res.writeHead(result.status,{'content-type':result.type,'cache-control':'no-store'});res.end(result.body);}
-}).listen(port,'127.0.0.1',()=>console.log(`Neon native ETH lab: http://127.0.0.1:${port}/`));
+}).listen(port,'127.0.0.1',()=>console.log(`Neon native ETH lab: http://127.0.0.1:${server.address().port}/`));

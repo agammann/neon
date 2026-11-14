@@ -6,10 +6,10 @@
 
 | Symptom | What to do |
 | --- | --- |
-| `node` or `pnpm` is not recognized | Install Node.js 22.13 or newer and pnpm 11.19.0, then open a new terminal. Check `node --version` and `pnpm --version`. |
+| `node` or `pnpm` is not recognized | Install Node.js 24.19.0 and pnpm 11.19.0, then open a new terminal. Check `node --version` and `pnpm --version`. |
 | PowerShell blocks a script shim | Run the same command using `npm.cmd` or `pnpm.cmd`. No execution policy change is needed for that workaround. |
 | Lockfile mismatch | Use the committed lockfile and pinned pnpm. Check that you are in the repository root. Do not discard the lockfile to bypass the error. |
-| Unsupported `node:sqlite` | Use Node.js 22.13 or newer. The local server uses the built in SQLite module. |
+| Unsupported `node:sqlite` | Use Node.js 24.19.0. The local server uses the built in SQLite module. |
 | Ganache reports a missing native µWS binary | A JavaScript fallback is expected on some Node versions. Continue if the lab subsequently prints **Test lab ready**. An actual startup failure still needs investigation. |
 | `EADDRINUSE` on 4318 or 4319 | Another instance is already listening. Use that instance or stop its terminal with **Ctrl+C** before restarting. |
 | Lab startup stalls or quotes are unavailable | The fork needs a working Ethereum RPC and internet access. Retry once connectivity is restored, or configure a trusted `ETHEREUM_RPC_URL` privately. |

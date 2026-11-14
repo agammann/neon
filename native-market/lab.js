@@ -7,6 +7,7 @@ const el=(tag,cls,text)=>{const node=document.createElement(tag);if(cls)node.cla
 function actionButton(label,payload){const button=el('button','',label);button.addEventListener('click',()=>act(payload));return button;}
 function render(data){
   current=data;$('price').textContent=data.price==null?'Oracle stale':`$${data.price.toLocaleString('en-US',{minimumFractionDigits:2})}`;
+  $('outage-status').textContent=data.outageObservedAt?`Outage first recorded ${new Date(data.outageObservedAt*1000).toLocaleString()}; refund needs 24 hours and a current invalid reading.`:'No outage recorded';
   $('contract').textContent=`Contract ${short(data.contract)}`;
   const traders=$('traders');traders.replaceChildren();
   for(const name of ['Alice','Bob']){
@@ -54,5 +55,6 @@ async function act(payload){
 }
 $('post').addEventListener('click',()=>act({action:'post',actor:$('maker').value,side:$('side').value,amount:$('margin').value,leverage:Number($('leverage').value)}));
 $('set-price').addEventListener('click',()=>act({action:'setPrice',price:Number($('new-price').value)}));
+$('observe-oracle').addEventListener('click',()=>act({action:'observe'}));
 $('reset').addEventListener('click',()=>{if(window.confirm('Reset all disposable test-chain transactions?'))act({action:'reset'});});
 refresh();setInterval(()=>{if(!busy)refresh();},5000);

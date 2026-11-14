@@ -1,12 +1,12 @@
 {
   "name": "neon",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test tests/*.test.mjs",
-    "test:native": "node --test native-market/test/market.test.mjs",
+    "test:native": "node --test native-market/test/*.test.mjs",
     "check": "node --check dist/app.js && node --check dist/engine.js",
     "build": "node build.mjs",
     "build:native": "node native-market/compile.mjs",
@@ -15,7 +15,9 @@
     "build:lab": "node scripts/build-lab.mjs",
     "testnet": "node scripts/build-lab.mjs && node scripts/lab-server.mjs",
     "check:mainnet": "node scripts/check-mainnet.mjs",
-    "test:orders": "node --test tests/orders.fork.integration.mjs"
+    "test:orders": "node --test tests/orders.fork.integration.mjs",
+    "package:release": "node scripts/package-release.mjs",
+    "test:consumer": "node scripts/consumer-check.mjs"
   },
   "engines": {
     "node": ">=22.13"
@@ -24,9 +26,10 @@
     "ethers": "6.17.0"
   },
   "devDependencies": {
-    "esbuild": "0.25.12",
+    "esbuild": "0.28.2",
     "ganache": "7.9.2",
     "solc": "0.8.37"
   },
-  "packageManager": "pnpm@11.19.0"
+  "packageManager": "pnpm@11.19.0",
+  "license": "MIT"
 }

@@ -10,3 +10,5 @@ node_modules/
 native-market/artifacts/
 dist/server/
 dist/.openai/
+release-artifacts/
+consumer-output/

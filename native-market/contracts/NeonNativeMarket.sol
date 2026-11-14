@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
 interface IUsdOracle {
@@ -16,6 +16,7 @@ contract NeonNativeMarket {
     error InvalidPosition();
     error Unauthorized();
     error PriceUnavailable();
+    error InsufficientOracleGas();
     error PriceOutsideBounds();
     error NotLiquidatable();
     error TransferFailed();
@@ -25,8 +26,10 @@ contract NeonNativeMarket {
     uint256 public constant MAX_ORACLE_AGE = 1 hours;
     uint256 public constant STALE_REFUND_AGE = 24 hours;
     uint256 public constant PRICE_CAP = 1e16; // USD with 8 decimals; bounds arithmetic.
+    uint256 public constant MAX_ORACLE_READ_GAS = 100_000;
     uint8 public constant MAX_LEVERAGE = 5;
     IUsdOracle public immutable oracle;
+    uint256 public oracleOutageObservedAt;
 
     uint256 public nextOfferId = 1;
     uint256 public nextPositionId = 1;
@@ -65,6 +68,7 @@ contract NeonNativeMarket {
     event PositionOpened(uint256 indexed positionId, uint256 indexed offerId, address indexed longTrader, address shortTrader, uint256 entryPrice8);
     event PositionSettled(uint256 indexed positionId, uint256 exitPrice8, uint256 longPayoutWei, uint256 shortPayoutWei, bool liquidated);
     event PositionStaleRefunded(uint256 indexed positionId);
+    event OracleObservation(bool healthy, uint256 outageObservedAt);
 
     constructor(address oracleAddress) {
         if (block.chainid != 31337) revert InvalidChain();
@@ -97,6 +101,7 @@ contract NeonNativeMarket {
         if (leverage == 0 || leverage > MAX_LEVERAGE || maxDeviationBps > 500) revert InvalidOffer();
         if (expiresAt <= block.timestamp || expiresAt > block.timestamp + 7 days) revert InvalidOffer();
         uint256 price = currentPrice8();
+        _clearOracleOutage();
         availableWei[msg.sender] -= marginWei;
         offerId = nextOfferId++;
         offers[offerId] = Offer(msg.sender, marginWei, price, expiresAt, maxDeviationBps, leverage, makerIsLong, true);
@@ -117,6 +122,7 @@ contract NeonNativeMarket {
         if (!offer.active || block.timestamp > offer.expiresAt || msg.sender == offer.maker) revert InvalidOffer();
         if (availableWei[msg.sender] < offer.marginWei) revert InvalidAmount();
         uint256 price = currentPrice8();
+        _clearOracleOutage();
         if (price < minPrice8 || price > maxPrice8) revert PriceOutsideBounds();
         uint256 difference = price > offer.referencePrice8 ? price - offer.referencePrice8 : offer.referencePrice8 - price;
         if (difference * 10_000 > offer.referencePrice8 * offer.maxDeviationBps) revert PriceOutsideBounds();
@@ -133,29 +139,42 @@ contract NeonNativeMarket {
         Position storage position = positions[positionId];
         if (!position.active) revert InvalidPosition();
         if (msg.sender != position.longTrader && msg.sender != position.shortTrader) revert Unauthorized();
-        _settle(positionId, currentPrice8(), false);
+        uint256 price = currentPrice8();
+        _clearOracleOutage();
+        _settle(positionId, price, false);
     }
 
     function liquidate(uint256 positionId) external {
         Position storage position = positions[positionId];
         if (!position.active) revert InvalidPosition();
         uint256 price = currentPrice8();
+        _clearOracleOutage();
         uint256 delta = price > position.entryPrice8 ? price - position.entryPrice8 : position.entryPrice8 - price;
         uint256 lossWei = position.marginWei * position.leverage * delta / price;
         if (lossWei < position.marginWei * 8 / 10) revert NotLiquidatable();
         _settle(positionId, price, true);
     }
 
-    /// @notice Last-resort neutral refund if the oracle is stale or unresponsive for a full day.
-    /// @dev Cancels all mark-to-market PnL; it is a liveness escape, not a fair-price guarantee.
+    /// @notice Record the oracle's present health; anyone may report an observation.
+    /// @dev A healthy observation resets the timer. It cannot prove uninterrupted
+    /// failure between transactions because this oracle interface has no history.
+    function observeOracle() external returns (bool healthy) {
+        (healthy,) = _readPrice();
+        if (healthy) _clearOracleOutage();
+        else if (oracleOutageObservedAt == 0) oracleOutageObservedAt = block.timestamp;
+        emit OracleObservation(healthy, oracleOutageObservedAt);
+    }
+
+    /// @notice Neutral refund after an observed outage has aged for a full day.
+    /// @dev Requires an invalid current reading and no later recorded healthy
+    /// observation. Unobserved recovery is not detectable; this sacrifices PnL.
     function refundStalePosition(uint256 positionId) external {
         Position storage position = positions[positionId];
         if (!position.active) revert InvalidPosition();
         if (block.timestamp <= uint256(position.openedAt) + STALE_REFUND_AGE) revert PriceUnavailable();
-        // If the oracle call itself fails, users still have an exit after the waiting period.
-        try oracle.latestRoundData() returns (uint80, int256, uint256, uint256 updatedAt, uint80) {
-            if (updatedAt != 0 && updatedAt <= block.timestamp && block.timestamp - updatedAt <= STALE_REFUND_AGE) revert PriceUnavailable();
-        } catch {}
+        if (oracleOutageObservedAt == 0 || block.timestamp <= oracleOutageObservedAt + STALE_REFUND_AGE) revert PriceUnavailable();
+        (bool healthy,) = _readPrice();
+        if (healthy) revert PriceUnavailable();
         position.active = false;
         availableWei[position.longTrader] += position.marginWei;
         availableWei[position.shortTrader] += position.marginWei;
@@ -163,9 +182,43 @@ contract NeonNativeMarket {
     }
 
     function currentPrice8() public view returns (uint256 price8) {
-        (, int256 answer, , uint256 updatedAt,) = oracle.latestRoundData();
-        if (answer <= 0 || uint256(answer) > PRICE_CAP || updatedAt == 0 || updatedAt > block.timestamp || block.timestamp - updatedAt > MAX_ORACLE_AGE) revert PriceUnavailable();
-        return uint256(answer);
+        (bool healthy, uint256 price) = _readPrice();
+        if (!healthy) revert PriceUnavailable();
+        return price;
+    }
+
+    function _readPrice() private view returns (bool healthy, uint256 price8) {
+        // Decode explicitly: a Solidity try/catch does not catch every ABI
+        // decoding failure. Bound both the external call and copied return data.
+        // Guarantee the full oracle budget and enough gas to record a result;
+        // otherwise a caller could manufacture an outage with too little gas.
+        if (gasleft() < MAX_ORACLE_READ_GAS + 60_000) revert InsufficientOracleGas();
+        address target = address(oracle);
+        bytes memory request = abi.encodeWithSelector(IUsdOracle.latestRoundData.selector);
+        bytes memory data = new bytes(160);
+        bool ok;
+        uint256 size;
+        assembly ("memory-safe") {
+            ok := staticcall(MAX_ORACLE_READ_GAS, target, add(request, 32), mload(request), add(data, 32), 160)
+            size := returndatasize()
+        }
+        if (!ok || size != 160) return (false, 0);
+        uint256 roundId;
+        int256 answer;
+        uint256 updatedAt;
+        uint256 answeredInRound;
+        assembly ("memory-safe") {
+            roundId := mload(add(data, 32))
+            answer := mload(add(data, 64))
+            updatedAt := mload(add(data, 128))
+            answeredInRound := mload(add(data, 160))
+        }
+        if (roundId > type(uint80).max || answeredInRound > type(uint80).max || answer <= 0 || uint256(answer) > PRICE_CAP || updatedAt == 0 || updatedAt > block.timestamp || block.timestamp - updatedAt > MAX_ORACLE_AGE) return (false, 0);
+        return (true, uint256(answer));
+    }
+
+    function _clearOracleOutage() private {
+        if (oracleOutageObservedAt != 0) oracleOutageObservedAt = 0;
     }
 
     function _settle(uint256 positionId, uint256 exitPrice8, bool wasLiquidated) private {

@@ -9,7 +9,7 @@ const usd8=value=>BigInt(value)*100000000n;
 
 async function fixture(chainId=31337){
   const chain=ganache.provider({chain:{chainId},wallet:{totalAccounts:3,defaultBalance:100},logging:{quiet:true}});
-  const provider=new BrowserProvider(chain);
+  const provider=new BrowserProvider(chain,undefined,{cacheTimeout:-1});
   const [alice,bob,carol]=await Promise.all([provider.getSigner(0),provider.getSigner(1),provider.getSigner(2)]);
   const oracle=await new ContractFactory(compiled.oracle.abi,compiled.oracle.evm.bytecode.object,alice).deploy(usd8(2000));
   await oracle.waitForDeployment();
@@ -75,7 +75,7 @@ test('price deviation, locked margin, offer cancellation, and liquidation enforc
     await assert.rejects(f.market.connect(f.carol).liquidate(positionId));
     await(await f.oracle.setPrice(usd8(1750),{gasLimit:100000})).wait();
     await f.market.connect(f.carol).liquidate.staticCall(positionId);
-    await(await f.market.connect(f.carol).liquidate(positionId,{gasLimit:150000})).wait();
+    await(await f.market.connect(f.carol).liquidate(positionId,{gasLimit:300000})).wait();
     const longPayout=amount-amount*5n*usd8(300)/usd8(1750);
     assert.equal(await f.market.availableWei(await f.bob.getAddress()),longPayout);
     assert.equal(await f.market.availableWei(await f.alice.getAddress()),2n*amount-longPayout);
@@ -95,10 +95,14 @@ test('stale oracle blocks priced closes but permits neutral ETH refund after one
   const f=await deployed();
   try{
     const {amount,positionId}=await openPair(f);
-    await f.chain.request({method:'evm_increaseTime',params:[86401]});
+    await f.chain.request({method:'evm_increaseTime',params:[3601]});
     await f.chain.request({method:'evm_mine',params:[]});
     await assert.rejects(f.market.connect(f.alice).closePosition(positionId));
-    await(await f.market.connect(f.carol).refundStalePosition(positionId)).wait();
+    await(await f.market.connect(f.carol).observeOracle()).wait();
+    await assert.rejects(f.market.connect(f.carol).refundStalePosition.staticCall(positionId));
+    await f.chain.request({method:'evm_increaseTime',params:[86401]});
+    await f.chain.request({method:'evm_mine',params:[]});
+    await(await f.market.connect(f.carol).refundStalePosition(positionId,{gasLimit:300000})).wait();
     assert.equal(await f.market.availableWei(await f.alice.getAddress()),amount);
     assert.equal(await f.market.availableWei(await f.bob.getAddress()),amount);
   }finally{await f.chain.disconnect();}
@@ -110,13 +114,153 @@ test('a reverting oracle cannot permanently trap either trader’s ETH',async()=
     const {amount,positionId}=await openPair(f);
     await(await f.oracle.setBroken(true)).wait();
     await assert.rejects(f.market.connect(f.carol).refundStalePosition(positionId));
+    await(await f.market.connect(f.carol).observeOracle()).wait();
     await f.chain.request({method:'evm_increaseTime',params:[86401]});
     await f.chain.request({method:'evm_mine',params:[]});
+    await assert.rejects(f.market.connect(f.carol).refundStalePosition.staticCall(positionId,{gasLimit:100000}));
+    assert.equal((await f.market.positions(positionId)).active,true);
     await f.market.connect(f.carol).refundStalePosition.staticCall(positionId);
-    await(await f.market.connect(f.carol).refundStalePosition(positionId,{gasLimit:150000})).wait();
+    await(await f.market.connect(f.carol).refundStalePosition(positionId,{gasLimit:300000})).wait();
     assert.equal(await f.market.availableWei(await f.alice.getAddress()),amount);
     assert.equal(await f.market.availableWei(await f.bob.getAddress()),amount);
     assert.equal(await f.market.totalLiabilityWei(),2n*amount);
+  }finally{await f.chain.disconnect();}
+});
+
+test('a newly reported oracle failure cannot erase an older position immediately',async()=>{
+  const f=await deployed();
+  try{
+    const {amount,positionId}=await openPair(f);
+    await f.chain.request({method:'evm_increaseTime',params:[86402]});
+    await f.chain.request({method:'evm_mine',params:[]});
+    await(await f.oracle.setPrice(usd8(2100),{gasLimit:100000})).wait();
+    await(await f.oracle.setBroken(true)).wait();
+    await(await f.market.connect(f.carol).observeOracle()).wait();
+    const observed=await f.market.oracleOutageObservedAt();
+    assert.ok(observed>0n);
+    await assert.rejects(f.market.connect(f.carol).refundStalePosition.staticCall(positionId));
+    assert.equal((await f.market.positions(positionId)).active,true);
+    assert.equal(await f.market.totalLiabilityWei(),amount*2n);
+    assert.equal(await f.market.availableWei(await f.alice.getAddress()),0n);
+    assert.equal(await f.market.availableWei(await f.bob.getAddress()),0n);
+    await f.chain.request({method:'evm_increaseTime',params:[86401]});
+    await f.chain.request({method:'evm_mine',params:[]});
+    await(await f.market.connect(f.carol).refundStalePosition(positionId,{gasLimit:300000})).wait();
+    assert.equal(await f.market.availableWei(await f.alice.getAddress()),amount);
+    assert.equal(await f.market.availableWei(await f.bob.getAddress()),amount);
+  }finally{await f.chain.disconnect();}
+});
+
+test('invalid readings can be observed, a healthy observation resets the waiting period',async()=>{
+  const f=await deployed();
+  try{
+    const {amount,positionId}=await openPair(f);
+    await(await f.oracle.setPrice(0,{gasLimit:100000})).wait();
+    await(await f.market.connect(f.carol).observeOracle()).wait();
+    const first=await f.market.oracleOutageObservedAt();
+    assert.ok(first>0n);
+    await f.chain.request({method:'evm_increaseTime',params:[86402]});
+    await f.chain.request({method:'evm_mine',params:[]});
+    await(await f.oracle.setPrice(usd8(2100),{gasLimit:100000})).wait();
+    await assert.rejects(f.market.connect(f.carol).refundStalePosition.staticCall(positionId));
+    await assert.rejects(f.market.connect(f.carol).refundStalePosition.staticCall(positionId,{gasLimit:100000}));
+    assert.equal((await f.market.positions(positionId)).active,true);
+    await(await f.market.connect(f.carol).observeOracle()).wait();
+    assert.equal(await f.market.oracleOutageObservedAt(),0n);
+    await(await f.oracle.setPrice(0,{gasLimit:100000})).wait();
+    await(await f.market.connect(f.carol).observeOracle()).wait();
+    assert.ok(await f.market.oracleOutageObservedAt()>first);
+    await assert.rejects(f.market.connect(f.carol).refundStalePosition.staticCall(positionId));
+    assert.equal((await f.market.positions(positionId)).active,true);
+    assert.equal(await f.market.totalLiabilityWei(),amount*2n);
+    await f.chain.request({method:'evm_increaseTime',params:[86401]});
+    await f.chain.request({method:'evm_mine',params:[]});
+    await(await f.market.connect(f.carol).refundStalePosition(positionId,{gasLimit:300000})).wait();
+    assert.equal(await f.market.availableWei(await f.alice.getAddress()),amount);
+    assert.equal(await f.market.availableWei(await f.bob.getAddress()),amount);
+  }finally{await f.chain.disconnect();}
+});
+
+test('zero, out-of-range, missing and future oracle rounds start a checkpoint',async()=>{
+  const f=await deployed();
+  try{
+    await openPair(f);
+    const latest=await f.chain.request({method:'eth_getBlockByNumber',params:['latest',false]});
+    const now=BigInt(latest.timestamp);
+    for(const [answer,timestamp] of [[0n,now],[10000000000000001n,now],[usd8(2000),0n],[usd8(2000),now+1000n]]){
+      await(await f.oracle.setRound(answer,timestamp,{gasLimit:100000})).wait();
+      await(await f.market.connect(f.carol).observeOracle()).wait();
+      assert.ok(await f.market.oracleOutageObservedAt()>0n);
+      await assert.rejects(f.market.currentPrice8());
+      await(await f.oracle.setPrice(usd8(2000),{gasLimit:100000})).wait();
+      await(await f.market.connect(f.carol).observeOracle()).wait();
+      assert.equal(await f.market.oracleOutageObservedAt(),0n);
+    }
+  }finally{await f.chain.disconnect();}
+});
+
+test('a completed healthy priced action clears a recorded outage',async()=>{
+  const f=await deployed();
+  try{
+    const {positionId}=await openPair(f);
+    await(await f.oracle.setPrice(0,{gasLimit:100000})).wait();
+    await(await f.market.connect(f.carol).observeOracle()).wait();
+    assert.ok(await f.market.oracleOutageObservedAt()>0n);
+    await(await f.oracle.setPrice(usd8(2100),{gasLimit:100000})).wait();
+    await(await f.market.connect(f.alice).closePosition(positionId,{gasLimit:300000})).wait();
+    assert.equal(await f.market.oracleOutageObservedAt(),0n);
+  }finally{await f.chain.disconnect();}
+});
+
+test('a reverted priced action does not persist an outage reset',async()=>{
+  const f=await deployed();
+  try{
+    const amount=parseEther('1');
+    await(await f.market.connect(f.alice).deposit({value:amount})).wait();
+    await(await f.market.connect(f.bob).deposit({value:amount})).wait();
+    const block=await f.provider.getBlock('latest');
+    await(await f.market.connect(f.alice).postOffer(true,amount,2,block.timestamp+3600,100)).wait();
+    await(await f.oracle.setPrice(0,{gasLimit:100000})).wait();
+    await(await f.market.connect(f.carol).observeOracle({gasLimit:300000})).wait();
+    const checkpoint=await f.market.oracleOutageObservedAt();
+    await(await f.oracle.setPrice(usd8(2000),{gasLimit:100000})).wait();
+    await assert.rejects(async()=>{
+      const tx=await f.market.connect(f.bob).matchOffer(1,usd8(2200),usd8(2300),{gasLimit:300000});
+      await tx.wait();
+    });
+    assert.equal(await f.market.oracleOutageObservedAt(),checkpoint);
+    assert.equal((await f.market.offers(1)).active,true);
+    await(await f.market.connect(f.carol).observeOracle({gasLimit:300000})).wait();
+    assert.equal(await f.market.oracleOutageObservedAt(),0n);
+  }finally{await f.chain.disconnect();}
+});
+
+test('malformed or oversized oracle output is recorded as an unavailable reading',async()=>{
+  const f=await deployed();
+  try{
+    await openPair(f);
+    for(const mode of [1,2,3]){
+      await(await f.oracle.setMalformedMode(mode,{gasLimit:100000})).wait();
+      assert.equal(await f.market.connect(f.carol).observeOracle.staticCall(),false);
+      await(await f.market.connect(f.carol).observeOracle({gasLimit:300000})).wait();
+      assert.ok(await f.market.oracleOutageObservedAt()>0n);
+      await assert.rejects(f.market.currentPrice8());
+      await(await f.oracle.setMalformedMode(0,{gasLimit:100000})).wait();
+      await(await f.market.connect(f.carol).observeOracle({gasLimit:300000})).wait();
+      assert.equal(await f.market.oracleOutageObservedAt(),0n);
+    }
+  }finally{await f.chain.disconnect();}
+});
+
+test('too little caller gas cannot manufacture an oracle outage',async()=>{
+  const f=await deployed();
+  try{
+    await openPair(f);
+    for(const gasLimit of [80000,100000,150000,170000,190000,220000,300000]){
+      try{await(await f.market.connect(f.carol).observeOracle({gasLimit})).wait();}catch{}
+      assert.equal(await f.market.oracleOutageObservedAt(),0n,`false outage at gas limit ${gasLimit}`);
+    }
+    assert.equal(await f.market.connect(f.carol).observeOracle.staticCall({gasLimit:300000}),true);
   }finally{await f.chain.disconnect();}
 });
 
@@ -126,7 +270,7 @@ test('extreme oracle moves cannot pay out more ETH than both traders deposited',
     try{
       const {amount,positionId}=await openPair(f,{leverage:5});
       await(await f.oracle.setPrice(usd8(exit),{gasLimit:100000})).wait();
-      await(await f.market.connect(f.alice).closePosition(positionId,{gasLimit:150000})).wait();
+      await(await f.market.connect(f.alice).closePosition(positionId,{gasLimit:300000})).wait();
       const alice=await f.market.availableWei(await f.alice.getAddress());
       const bob=await f.market.availableWei(await f.bob.getAddress());
       assert.equal(alice+bob,2n*amount);
@@ -137,7 +281,9 @@ test('extreme oracle moves cannot pay out more ETH than both traders deposited',
   }
 });
 
-test('prototype bytecode refuses Ethereum Mainnet chain ID',async()=>{
-  const f=await fixture(1);
-  try{await assert.rejects(f.marketFactory.deploy(await f.oracle.getAddress()));}finally{await f.chain.disconnect();}
+test('prototype bytecode refuses Ethereum Mainnet and Sepolia chain IDs',async()=>{
+  for(const chainId of [1,11155111]){
+    const f=await fixture(chainId);
+    try{await assert.rejects(f.marketFactory.deploy(await f.oracle.getAddress()));}finally{await f.chain.disconnect();}
+  }
 });
