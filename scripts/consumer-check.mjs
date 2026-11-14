@@ -6,5 +6,5 @@ const pnpmPath=process.env.NEON_PNPM||process.env.npm_execpath;
 if(!pnpmPath)throw Error('Run this check using pnpm test:consumer.');
 const pnpm=(args)=>execFileSync(process.execPath,[pnpmPath,...args],{cwd:source,stdio:'inherit',windowsHide:true});
 pnpm(['install','--frozen-lockfile']);
-pnpm(['build']);pnpm(['build:lab']);pnpm(['test']);pnpm(['check']);
-console.log('Fresh Neon source consumer installed, built both profiles and passed offline checks. No wallet or server started; contract and browser checks run separately.');
+pnpm(['build']);pnpm(['build:lab']);pnpm(['test']);pnpm(['test:native']);pnpm(['check']);
+console.log('Fresh Neon source consumer installed, built both profiles and passed offline checks, including local native-market contracts. No wallet or server started; browser checks run separately.');

@@ -37,4 +37,6 @@ with zipfile.ZipFile(archive) as z:
 source=out/f'neon-{version}'
 assert json.loads((source/'package.json').read_text(encoding='utf-8'))['license']=='MIT'
 assert (source/'LICENSE').is_file() and (source/'pnpm-lock.yaml').is_file()
+for contract in ['NeonNativeMarket.sol','MockEthUsdOracle.sol']:
+ assert (source/'native-market'/'contracts'/contract).read_text(encoding='utf-8').startswith('// SPDX-License-Identifier: MIT\n')
 print(str(source))
