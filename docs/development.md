@@ -15,7 +15,7 @@ Follow the [clone and install commands](../README.md#interactive-local-testnet).
 | `pnpm testnet` | Build and run the disposable browser lab | Reads mainnet state, executes only locally; port 4319 |
 | `pnpm build:lab` | Build the test profile without starting a server | Writes ignored `.lab/` artifacts |
 | `pnpm start` | Serve the mainnet interface locally | Port 4318; real wallet required for actual trades |
-| `pnpm test` | Run the offline suite | 25 offline tests |
+| `pnpm test` | Run the offline suite | No live RPC |
 | `pnpm check` | Check authored simulator JavaScript syntax | No network |
 | `pnpm test:fork` | Exercise ETH / USDT swaps against copied contracts | Reads Ethereum; submits only inside Ganache |
 | `pnpm test:orders` | Exercise 0x orders, API, cancellation, expiry, and reorg recovery | Reads Ethereum; submits only inside Ganache |
@@ -91,6 +91,8 @@ Publishing GitHub changes alone does not deploy the website. Documentation chang
 | [Health](https://neon.alx21.chatgpt.site/api/health) | Storage responds; this alone is not Ethereum readiness |
 | [Readiness](https://neon.alx21.chatgpt.site/api/readiness) | Recent Ethereum block, expected token/router identity, and zero 0x fee requirement; failure returns HTTP 503 |
 | [Order book](https://neon.alx21.chatgpt.site/api/orders) | Public signed order availability and indexed receipt history |
+
+Reading the order book updates server rate-limit counts and may reconcile cached order statuses and receipt block numbers against Ethereum. The `read_live_order_book` WebMCP tool uses this same route. It declares `readOnlyHint: false` and `untrustedContentHint: true` to describe its maintenance writes and externally sourced output, consistent with the [WebMCP annotation definitions](https://webmachinelearning.github.io/webmcp/#dom-toolannotations-readonlyhint). The tool requests no wallet signature or transaction.
 
 Bodies are limited to 8 KiB. The API allows 60 requests per minute per request IP, up to 20 cached active orders per maker, and 10,000 total unexpired stored orders. Receipt candidates and order pages are bounded. See [book behavior](trading.md#history-and-book-behavior) for visible pagination and history limits.
 
