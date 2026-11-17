@@ -25,7 +25,7 @@ Install [Git](https://git-scm.com/downloads), [Node.js](https://nodejs.org/en/do
 
 ```sh
 npm install --global pnpm@11.19.0
-git clone --branch v1.0.2 --depth 1 https://github.com/agammann/neon.git
+git clone --branch v1.0.3 --depth 1 https://github.com/agammann/neon.git
 cd neon
 pnpm install --frozen-lockfile
 pnpm testnet
@@ -37,7 +37,7 @@ Wait for **Test lab ready**, then open `http://127.0.0.1:4319/` on the same comp
 
 Follow the [Alice and Bob walkthrough](docs/testnet.md) for exact steps and expected balances. Internet access is needed to read Ethereum state. Keep the terminal running; **Ctrl+C** stops the lab. Restarting creates fresh wallets and clears the lab book.
 
-You can also download `neon_1.0.2_source.zip` and `SHA256SUMS` from the [v1.0.2 release](https://github.com/agammann/neon/releases/tag/v1.0.2), verify the ZIP with `Get-FileHash` in PowerShell or `sha256sum` in a POSIX shell, extract it, and run the same install and testnet commands inside `neon-1.0.2`. No wallet extension or private key is needed for this lab.
+You can also download `neon_1.0.3_source.zip` and `SHA256SUMS` from the [v1.0.3 release](https://github.com/agammann/neon/releases/tag/v1.0.3), verify the ZIP with `Get-FileHash` in PowerShell or `sha256sum` in a POSIX shell, extract it, and run the same install and testnet commands inside `neon-1.0.3`. No wallet extension or private key is needed for this lab.
 
 ## Release status
 
@@ -47,7 +47,7 @@ The local testnet copies actual Ethereum contract code and state. It is not Sepo
 
 [V1 verification](docs/verification-v1.md) records the current local consumer scope; the source release includes setup, upgrade and recovery instructions.
 
-When native WebMCP is enabled in the tested Chrome build, the page exposes `read_exchange`, `place_simulated_order` and `read_live_order_book`. The first two operate only on the Bob + Alice simulation; the third reads the public signed order book. They grant no wallet signing or transaction authority. Ordinary page controls also work without WebMCP.
+When native WebMCP is enabled in the tested Chrome build, the page exposes `read_exchange`, `place_simulated_order` and `read_live_order_book`. The first two operate only on the Bob + Alice simulation. Reading the live book increments server rate-limit counts and may reconcile cached order statuses and receipt block numbers from Ethereum. Its annotations disclose these maintenance writes and untrusted external output. These tools grant no wallet signing or transaction authority. Ordinary page controls also work without WebMCP.
 
 ## Documentation
 

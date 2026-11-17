@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.3
+
+- Correct the live-book WebMCP annotation to disclose rate-limit and cache maintenance writes, and mark externally sourced output as untrusted. Preserve the tool schema, route and wallet authority.
+- Include the separate experimental native ETH lab already on main, with its local-chain contracts and offline tests. It remains restricted to disposable test ETH on chain 31337.
+- Refresh versioned installation instructions and distinguish current offline CI gates from the historical live-RPC checks.
+
 ## 1.0.2
 
 - Return safe validation responses for invalid order and receipt requests, while keeping internal storage and Ethereum provider errors out of client responses.
