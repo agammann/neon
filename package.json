@@ -28,7 +28,7 @@
   "devDependencies": {
     "esbuild": "0.28.2",
     "ganache": "7.9.2",
-    "solc": "0.8.37"
+    "solc": "0.8.39"
   },
   "packageManager": "pnpm@11.19.0",
   "license": "MIT"

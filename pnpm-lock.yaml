@@ -24,8 +24,8 @@ importers:
         specifier: 7.9.2
         version: 7.9.2
       solc:
-        specifier: 0.8.37
-        version: 0.8.37
+        specifier: 0.8.39
+        version: 0.8.39
 
 packages:
 
@@ -329,13 +329,13 @@ packages:
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
 
-  semver@5.7.2:
-    resolution: {integrity: sha512-cBznnQ9KjJqU67B52RMC65CMarK2600WFnbkcaiwWq3xy/5haFJlshgnpjovMVJ+Hff49d8GEn0b87C5pDQ10g==}
+  semver@5.7.3:
+    resolution: {integrity: sha512-kM18BPOqTi0+TB68703/GJRpAML5Me+IDQsR1J26YB3EFKKNEyHIVZuWDX7+WKQB3tHwDwgk24BfhdpWUbytvQ==}
     hasBin: true
 
-  solc@0.8.37:
-    resolution: {integrity: sha512-ieUYdPDRGNKMsZpCfi9tY64Q+ASoL8tyhLuvf9cFiqDs+6ijlx8Wn2CRi0N71AlCvRx0V092rlUYu3b3PuxWlA==}
-    engines: {node: '>=12.0.0'}
+  solc@0.8.39:
+    resolution: {integrity: sha512-DZgQzDMLd0U+DhaIi9o+W1Kb1GxySJgQRVRHMhbSzfQ5sp6a8sA8ePiAc9ZbgzUxGclUJtjFGcuiGF5X0pt4YA==}
+    engines: {node: '>=16.0.0'}
     hasBin: true
 
   tmp@0.2.7:
@@ -617,16 +617,16 @@ snapshots:
 
   queue-microtask@1.2.3: {}
 
-  semver@5.7.2: {}
+  semver@5.7.3: {}
 
-  solc@0.8.37:
+  solc@0.8.39:
     dependencies:
       command-exists: 1.2.9
       commander: 8.3.0
       follow-redirects: 1.16.2
       js-sha3: 0.8.0
       memorystream: 0.3.1
-      semver: 5.7.2
+      semver: 5.7.3
       tmp: 0.2.7
     transitivePeerDependencies:
       - debug
